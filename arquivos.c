@@ -369,6 +369,82 @@ void Cmd_delete (char *tr[]){
     }
 }
 
+int borrar_recursivo(const char *ruta) {
+    DIR *dir;
+    struct dirent *entrada;
+    char ruta_completa[1024];
+    struct stat st;
+
+    dir = opendir(ruta);//Abrir el directorio
+    if (dir == NULL) {
+        return -1; //error de apertura
+    }
+
+    //Leer cada elemento de dentro del directorio
+    while ((entrada = readdir(dir)) != NULL) {
+        // Ignorar las entradas "." y ".."
+        if (strcmp(entrada->d_name, ".") == 0 || strcmp(entrada->d_name, "..") == 0) {
+            continue;
+        }
+        
+        // Construir la ruta completa del fichero/subdirectorio hijo
+        snprintf(ruta_completa, sizeof(ruta_completa), "%s/%s", ruta, entrada->d_name);
+
+        // Comprobar si es un directorio o un archivo normal
+        if (lstat(ruta_completa, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                // Si es un subdirectorio, llamada recursiva
+                if (borrar_recursivo(ruta_completa) == -1) {
+                    closedir(dir);
+                    return -1;
+                }
+            } else {
+                // Si es un fichero normal (u otro enlace), se borra con unlink
+                if (unlink(ruta_completa) == -1) {
+                    closedir(dir);
+                    return -1;
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+
+    // 3. Una vez vaciado por completo, borramos el directorio padre con rmdir
+    return rmdir(ruta);
+}
+
+// Funcion principal del comando para el shell
+void Cmd_deltree(char *tr[]) {
+    int i = 0;
+
+    if (tr[0] == NULL) {
+        printf("Parametro incorrecto");
+        return;
+    }
+
+    // Soporta multiples rutas pasadas por argumentos
+    while (tr[i] != NULL) {
+        struct stat st;
+
+        // Comprobamos si la ruta existe y que tipo de elemento es
+        if (lstat(tr[i], &st) == -1) {
+            perror(tr[i]);
+        } else if (S_ISDIR(st.st_mode)) {
+            // Si es un directorio, lanzamos el borrado recursivo
+            if (borrar_recursivo(tr[i]) == -1) {
+                perror(tr[i]);
+            }
+        } else {
+            // Si por error le pasan un fichero normal, lo borramos con unlink
+            if (unlink(tr[i]) == -1) {
+                perror(tr[i]);
+            }
+        }
+        i++;
+    }
+}
+
 char LetraTF (mode_t m)
 {
      switch (m&S_IFMT) { /*and bit a bit con los bits de formato,0170000 */
