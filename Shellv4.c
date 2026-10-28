@@ -1,3 +1,9 @@
+// Alumno 1: Adrián Fandiño Suárez
+// Usuario 1: a.fsuarez@udc.es
+// Alumno 2: Juan David Sanchez-Seco Carvajal
+// Usuario 2: j.sanchez-secoc@udc.es
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,6 +15,7 @@
 #include "ejemplo.h"
 #include "arquivos.h"
 #include "sistema.h"
+#include "memoria.h"
 
 #define MAXENTRADA 2048
 
@@ -52,6 +59,8 @@ static struct COMANDO C[]={
    {"deltree", Cmd_deltree},
    {"listfile", Cmd_listfile},
    {"list", Cmd_list},
+   {"allocate", Cmd_allocate},
+   {"deallocate", Cmd_deallocate},
    {NULL,NULL},
   };
 

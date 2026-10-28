@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/utsname.h>
 
+#include "sistema.h"
+
 void Cmd_date (char *arg[]) {
     time_t t = time(NULL);
     struct tm *tm_info = localtime(&t);
