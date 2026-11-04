@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-/*la lisat en un simple array de punteros terminado a NULL*/
+/*la lista en un simple array de punteros terminado a NULL*/
 /*sirve para el PATH, la lista de hostoricos, la lista de ficheros abiertos..*/
 
 #define MAXLISTASIMPLE 4096

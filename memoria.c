@@ -19,8 +19,98 @@ static LISTASIMPLE L;
 
 // Funciones de nodos y listas
 
+void InsertarNodoShared(LISTASIMPLE *l, void *p, size_t tam, key_t clave) {
+    MemBlock *b = malloc(sizeof(MemBlock));
+    if (!b) return;
+    b->addr = p;
+    b->size = tam;
+    b->time = time(NULL);
+    b->type = SHARED;
+    b->key = clave;
+    b->df = -1;
+    b->name[0] = '\0';
+    if (AniadirElemento(*l, b) == -1) free(b);
+}
 
+void InsertarNodoMmap(LISTASIMPLE *l, void *p, size_t tam, int df, char *fichero) {
+    MemBlock *b = malloc(sizeof(MemBlock));
+    if (!b) return;
+    b->addr = p;
+    b->size = tam;
+    b->time = time(NULL);
+    b->type = MMAP;
+    b->key = 0;
+    b->df = df;
+    strncpy(b->name, fichero, MAXNAME - 1);
+    b->name[MAXNAME - 1] = '\0';
+    if (AniadirElemento(*l, b) == -1) free(b);
+}
 
+void InsertarNodoMalloc(LISTASIMPLE *l, void *p, size_t tam) {
+    MemBlock *b = malloc(sizeof(MemBlock));
+    if (!b) return;
+    b->addr = p;
+    b->size = tam;
+    b->time = time(NULL);
+    b->type = MALLOC;
+    b->key = 0;
+    b->df = -1;
+    b->name[0] = '\0';
+    if (AniadirElemento(*l, b) == -1) free(b);
+}
+
+static void ImprimirBloque(MemBlock *b) {
+    char fecha[32];
+    struct tm *tm_info = localtime(&b->time);
+    
+    // %e coloca un espacio en blanco para días del 1 al 9 (ej. "Nov  4")
+    strftime(fecha, sizeof(fecha), "%b %e %H:%M", tm_info);
+
+    if (b->type == MALLOC) {
+        printf("%20p%17lu %s malloc\n", b->addr, (unsigned long)b->size, fecha);
+    } else if (b->type == SHARED) {
+        printf("%20p%17lu %s shared (key %d)\n", b->addr, (unsigned long)b->size, fecha, (int)b->key);
+    } else if (b->type == MMAP) {
+        // Dos espacios antes de (descriptor %d)
+        printf("%20p%17lu %s %s  (descriptor %d)\n", b->addr, (unsigned long)b->size, fecha, b->name, b->df);
+    }
+}
+
+void ImprimirListaShared(LISTASIMPLE *l) {
+    printf("******Lista de bloques asignados shared para el proceso %d\n", (int)getpid());
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break; // Fin de la lista
+        if (b->type == SHARED) ImprimirBloque(b);
+    }
+}
+
+void ImprimirListaMmap(LISTASIMPLE *l) {
+    printf("******Lista de bloques asignados mmap para el proceso %d\n", (int)getpid());
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break; // Fin de la lista
+        if (b->type == MMAP) ImprimirBloque(b);
+    }
+}
+
+void ImprimirListaMalloc(LISTASIMPLE *l) {
+    printf("******Lista de bloques asignados malloc para el proceso %d\n", (int)getpid());
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break; // Fin de la lista
+        if (b->type == MALLOC) ImprimirBloque(b);
+    }
+}
+
+void ImprimirListaTotal(LISTASIMPLE *l) {
+    printf("******Lista de bloques asignados para el proceso %d\n", (int)getpid());
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break; // Fin de la lista
+        ImprimirBloque(b);
+    }
+}
 
 // Funciones de ayuda
 
@@ -154,7 +244,7 @@ void do_AllocateMalloc(char *tr[]) {
 
 void Cmd_allocate(char *tr[]) {
     if (tr[0] == NULL) {
-        ImprimirListaTotal(-1);
+        ImprimirListaTotal(&L); /* CORREGIDO: antes tenías ImprimirListaTotal(-1); */
         return;
     }
 

@@ -648,3 +648,20 @@ void Cmd_list(char *tr[]) {
         i++;
     }
 }
+
+
+// ========================== P2 ==========================
+
+void AnadirFicheroMmap(int df, int mode, const char *name) {
+    FileEntry *f = malloc(sizeof(FileEntry));
+    if (f == NULL) return;
+
+    f->df = df;
+    f->mode = mode;
+    
+    snprintf(f->name, MAXNAME, "Mapeo de %s", name);
+
+    if (AniadirElemento(openFiles, f) == -1) {
+        free(f);
+    }
+}

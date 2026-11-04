@@ -8,6 +8,8 @@ typedef struct {
     char name[MAXNAME];
 } FileEntry;
 
+// P1
+
 void Cmd_trychdir(char *args[]);
 void InitializeOpenFiles();
 void Cmd_open (char * tr[]);
@@ -23,4 +25,9 @@ void Cmd_delete(char * tr[]);
 void Cmd_deltree(char * tr[]);
 void Cmd_listfile(char * tr[]);
 void Cmd_list(char * tr[]);
+
+// P2
+
+void AnadirFicheroMmap(int df, int mode, const char *name);
+
 #endif
