@@ -302,36 +302,36 @@ void Cmd_writestr (char * tr[])
 
    // Inicializamos el contador de bytes escritos a 0
 
-while (tr[i] != NULL) {
-    ssize_t written = write(df, tr[i], strlen(tr[i]));
-    
-    // Si hay un error en alguna escritura, salimos del bucle con -1
-    if (written == -1) {
-        break;
-    }
-    written += written;
-    
-    // Si hay un siguiente argumento, escribimos un espacio en blanco para separarlos
-    if (tr[i+1] != NULL) {
-        ssize_t res_space = write(df, " ", 1);
-        if (res_space == -1) {
-            written = -1;
+    while (tr[i] != NULL) {
+        ssize_t written = write(df, tr[i], strlen(tr[i]));
+        
+        // Si hay un error en alguna escritura, salimos del bucle con -1
+        if (written == -1) {
             break;
         }
-        written += res_space;
-    }
-    i++;
+        written += written;
+        
+        // Si hay un siguiente argumento, escribimos un espacio en blanco para separarlos
+        if (tr[i+1] != NULL) {
+            ssize_t res_space = write(df, " ", 1);
+            if (res_space == -1) {
+                written = -1;
+                break;
+            }
+            written += res_space;
+        }
+        i++;
 
-// A partir de aquí, tus bloques "if (writen == -1)" y "else" funcionan exactamente igual
+    // A partir de aquí, tus bloques "if (writen == -1)" y "else" funcionan exactamente igual
 
-    if (written == -1) {
-        char err_msg[256];
-        sprintf(err_msg, "Error intentar escribir %ld bytes en el descriptor %d", (long)strlen(tr[1]), df);
-        perror(err_msg);
-    } else {
-        printf("Escritos %ld bytes en el descriptor %d\n", (long)written, df);
+        if (written == -1) {
+            char err_msg[256];
+            sprintf(err_msg, "Error intentar escribir %ld bytes en el descriptor %d", (long)strlen(tr[1]), df);
+            perror(err_msg);
+        } else {
+            printf("Escritos %ld bytes en el descriptor %d\n", (long)written, df);
+        }
     }
-}
 }
 
 void Cmd_makefile (char *tr[]){
