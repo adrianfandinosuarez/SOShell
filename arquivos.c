@@ -322,7 +322,7 @@ void Cmd_writestr (char * tr[])
         }
         i++;
 
-    // A partir de aquí, tus bloques "if (writen == -1)" y "else" funcionan exactamente igual
+        // A partir de aquí, tus bloques "if (writen == -1)" y "else" funcionan exactamente igual
 
         if (written == -1) {
             char err_msg[256];
