@@ -5,6 +5,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ipc.h>
@@ -687,3 +688,82 @@ void Cmd_recurse(char *tr[]) {
     Recursiva(n);
 }
 
+// memfill y memdump
+
+void LlenarMemoria (void *p, size_t cont, unsigned char byte) {
+    unsigned char *arr = (unsigned char *) p;
+    size_t i;
+
+    for (i = 0; i < cont; i++)
+        arr[i] = byte;
+}
+
+void Cmd_memfill(char *tr[]) {
+    if (tr[0] == NULL){
+        printf("parametros incorrectos\n");
+        return; 
+    }
+
+    void *p = CadenatoPointer(tr[0]);
+    size_t cont = 128;
+    unsigned char hcode = 'A';
+    if(tr[1]!=NULL){
+        cont = (size_t)strtoul(tr[1],NULL,10);
+    }
+
+    if(tr[2]!=NULL){
+        hcode = (unsigned char)strtoul(tr[2],NULL,16);
+    }
+
+    LlenarMemoria(p, cont, hcode);
+
+
+}
+
+void Cmd_memdump(char *tr[]) {
+    // Control de parámetros iniciales (evita desreferenciar NULL)
+    if (tr[0] == NULL) {
+        printf("parametros incorrectos\n");
+        return;
+    }
+
+    // Parseo de la dirección con CadenaToPointer
+    void *p = CadenatoPointer(tr[0]);
+    if (p == NULL) {
+        printf("direccion no valida\n");
+        return;
+    }
+
+    // Cantidad de bytes a volcar (25 bytes por defecto)
+    size_t cont = 25;
+    if (tr[1] != NULL) {
+        cont = (size_t)strtoul(tr[1], NULL, 10);
+    }
+
+    unsigned char *arr = (unsigned char *)p;
+    printf("Volcando %lu bytes desde la direccion %p\n", (unsigned long)cont, p);
+
+    size_t i = 0;
+    while (i < cont) {
+        // Ajuste para imprimir en bloques de máximo 25 bytes por tanda
+        size_t chunk = (cont - i > 25) ? 25 : (cont - i);
+
+        // Caracteres ASCII (o '.' si no es imprimible)
+        for (size_t j = 0; j < chunk; j++) {
+            char c = arr[i + j];
+            if (isprint((unsigned char)c))
+                printf("%4c", c);
+            else
+                printf("   .");
+        }
+        printf("\n");
+
+        // Códigos hexadecimales en base 16 de 2 dígitos 
+        for (size_t j = 0; j < chunk; j++) {
+            printf("  %02x", arr[i + j]);
+        }
+        printf("\n");
+
+        i += chunk;
+    }
+}
