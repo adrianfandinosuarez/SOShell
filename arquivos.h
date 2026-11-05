@@ -29,5 +29,6 @@ void Cmd_list(char * tr[]);
 // P2
 
 void AnadirFicheroMmap(int df, int mode, const char *name);
+void EliminarFicheroAbierto(int df);
 
 #endif

@@ -688,3 +688,11 @@ void AnadirFicheroMmap(int df, int mode, const char *name) {
         free(f);
     }
 }
+
+
+void EliminarFicheroAbierto(int df) {
+    int pos = BuscarElemento(openFiles, &df, CompFE);
+    if (pos != -1) {
+        BorrarElementoAtPos(openFiles, pos);
+    }
+}

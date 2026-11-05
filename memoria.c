@@ -262,9 +262,9 @@ void Cmd_allocate(char *tr[]) {
     }
 }
 
-void Cmd_deallocate(char *tr[]) {
-           
-}
+// Cmd_deallocate
+
+// Auxiliares
 
 void * CadenatoPointer (char * s)
 {
@@ -272,6 +272,166 @@ void * CadenatoPointer (char * s)
     sscanf(s, "%p", &p);
     return p;
 }
+
+void *DireccionNodoShared(LISTASIMPLE *l, key_t cl) {
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break;
+        if (b->type == SHARED && b->key == cl) {
+            return b->addr;
+        }
+    }
+    return NULL;
+}
+
+int EliminarNodoDireccion(LISTASIMPLE *l, void *p) {
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(*l, i);
+        if (b == NULL) break;
+        if (b->addr == p) {
+            // BorrarElementoAtPos libera la estructura MemBlock y compacta el array
+            return BorrarElementoAtPos(*l, i);
+        }
+    }
+    return -1;
+}
+
+void doDeallocateShared (key_t cl)
+{
+    void *p;                                 /*llamo a la funcion de la lista*/
+                                             /*que devuelve la direccion donde*/
+    if ((p=DireccionNodoShared (&L,cl))==NULL){/*esta la memoria de clave cl*/
+                printf ("No hay bloque de esa clave mapeado en el proceso\n");
+                return;
+    }
+   shmdt(p);
+   if (EliminarNodoDireccion (&L,p)==-1)  /*elimino el nodo */
+        printf ("Imposible quitar de lista: %s\n",strerror(errno));
+}
+
+void do_SharedDelkey (char *args[])
+{
+   key_t clave;
+   int id;
+   char *key=args[0];
+
+   if (key==NULL || (clave=(key_t) strtoul(key,NULL,10))==IPC_PRIVATE){
+        printf ("      delkey necesita clave_valida\n");
+        return;
+   }
+   if ((id=shmget(clave,0,0666))==-1){
+        perror ("shmget: imposible obtener memoria compartida");
+        return;
+   }
+   if (shmctl(id,IPC_RMID,NULL)==-1)
+        perror ("shmctl: imposible eliminar memoria compartida\n");
+}
+
+// Deallocate principal
+
+void do_DeallocateMalloc(char *tr[]) {
+    if (tr[0] == NULL) {
+        ImprimirListaMalloc(&L);
+        return;
+    }
+
+    size_t tam = (size_t)strtoul(tr[0], NULL, 10);
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(L, i);
+        if (b == NULL) break;
+        
+        if (b->type == MALLOC && b->size == tam) {
+            free(b->addr); // 1. Liberamos la memoria del heap
+            BorrarElementoAtPos(L, i); // 2. Eliminamos el bloque de la lista
+            return;
+        }
+    }
+    printf("No hay bloque de ese tamano asignado con malloc\n");
+}
+
+void do_DeallocateMmap(char *tr[]) {
+    if (tr[0] == NULL) {
+        ImprimirListaMmap(&L);
+        return;
+    }
+
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(L, i);
+        if (b == NULL) break;
+
+        if (b->type == MMAP && !strcmp(b->name, tr[0])) {
+            if (munmap(b->addr, b->size) == -1) {
+                perror("Imposible desmapear fichero");
+                return;
+            }
+            close(b->df);
+            EliminarFicheroAbierto(b->df); /* <-- Quita de listopen */
+            BorrarElementoAtPos(L, i);
+            return;
+        }
+    }
+    printf("Fichero %s no mapeado\n", tr[0]);
+}
+
+void do_DeallocateAddr(char *addr_str) {
+    void *p = CadenatoPointer(addr_str);
+
+    for (int i = 0; ; i++) {
+        MemBlock *b = (MemBlock *)GetElementoAtPos(L, i);
+        if (b == NULL) break;
+
+        if (b->addr == p) {
+            switch (b->type) {
+                case MALLOC:
+                    free(b->addr);
+                    break;
+                case SHARED:
+                    if (shmdt(b->addr) == -1) {
+                        perror("Imposible desasignar memoria compartida");
+                        return;
+                    }
+                    break;
+                case MMAP:
+                    if (munmap(b->addr, b->size) == -1) {
+                        perror("Imposible desmapear fichero");
+                        return;
+                    }
+                    close(b->df);
+                    EliminarFicheroAbierto(b->df); /* <-- Quita de listopen si era un mmap */
+                    break;
+            }
+            BorrarElementoAtPos(L, i);
+            return;
+        }
+    }
+    printf("Direccion %p no asignada con malloc, shared o mmap\n", p);
+}
+
+void Cmd_deallocate(char *tr[]) {
+    if (tr[0] == NULL) {
+        ImprimirListaTotal(&L);
+        return;
+    }
+
+    if (!strcmp(tr[0], "-malloc")) {
+        do_DeallocateMalloc(tr + 1);
+    } else if (!strcmp(tr[0], "-shared")) {
+        if (tr[1] == NULL) {
+            ImprimirListaShared(&L);
+        } else {
+            key_t cl = (key_t) strtoul(tr[1], NULL, 10);
+            doDeallocateShared(cl);
+        }
+    } else if (!strcmp(tr[0], "-delkey")) {
+        do_SharedDelkey(tr + 1);
+    } else if (!strcmp(tr[0], "-mmap")) {
+        do_DeallocateMmap(tr + 1);
+    } else {
+        do_DeallocateAddr(tr[0]);
+    }
+}
+
+// Funciones de I/O y memoria
 
 ssize_t LeerFichero (char *f, void *p, size_t cont)
 {
@@ -381,7 +541,8 @@ void Cmd_io(char *tr[]) {
     }
 }
 
-// Cmd_memory implementation
+// Cmd_memory, muestreo en terminal de datos de memoria, funciones...
+
 // 3 globales inicializadas (.data) y 3 no inicializadas (.bss)
 int g_init_1 = 1, g_init_2 = 2, g_init_3 = 3;
 int g_noinit_1, g_noinit_2, g_noinit_3;
@@ -462,3 +623,68 @@ void Cmd_memory(char *tr[]) {
         printf("uso: memory [-blocks|-funcs|-vars|-all|-pmap]\n");
     }
 }
+
+// Read y write
+
+void Cmd_read(char *tr[]) {
+    if (tr[0] == NULL || tr[1] == NULL || tr[2] == NULL) {
+        printf("Parametros incorrectos\n");
+        return;
+    }
+
+    int df = atoi(tr[0]);
+    void *p = CadenatoPointer(tr[1]);
+    size_t cont = (size_t) strtoul(tr[2], NULL, 10);
+
+    ssize_t n = read(df, p, cont);
+    if (n == -1) {
+        printf("Error al leer del descriptor %d a la direccion %p: %s\n", 
+               df, p, strerror(errno));
+    } else {
+        printf("Leidos %ld bytes del descriptor %d en la direccion %p\n", 
+               (long)n, df, p);
+    }
+}
+
+void Cmd_write(char *tr[]) {
+    if (tr[0] == NULL || tr[1] == NULL || tr[2] == NULL) {
+        printf("Parametros incorrectos\n");
+        return;
+    }
+
+    int df = atoi(tr[0]);
+    void *p = CadenatoPointer(tr[1]);
+    size_t cont = (size_t) strtoul(tr[2], NULL, 10);
+
+    ssize_t n = write(df, p, cont);
+    if (n == -1) {
+        printf("Error al escribir en el descriptor %d desde la direccion %p: %s\n", 
+               df, p, strerror(errno));
+    } else {
+        printf("Escritos %ld bytes en el descriptor %d desde la direccion %p\n", 
+               (long)n, df, p);
+    }
+}
+
+// Recurse
+
+void Recursiva(int n) {
+    char automatico[TAMANO];
+    static char estatico[TAMANO];
+
+    printf("parametro n:%4d en %p\n", n, (void *)&n);
+    printf("array estatico en:%p \n", (void *)estatico);
+    printf("array automatico en %p\n", (void *)automatico);
+    n--;
+    if (n > 0)
+        Recursiva(n);
+}
+
+void Cmd_recurse(char *tr[]) {
+    if (tr[0] == NULL) {
+        return;
+    }
+    int n = atoi(tr[0]);
+    Recursiva(n);
+}
+

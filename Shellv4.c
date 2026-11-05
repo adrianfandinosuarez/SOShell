@@ -63,6 +63,9 @@ static struct COMANDO C[]={
    {"deallocate", Cmd_deallocate},
    {"i-o", Cmd_io},
    {"memory", Cmd_memory},
+   {"read", Cmd_read},
+   {"write", Cmd_write},
+   {"recurse", Cmd_recurse},
    {NULL,NULL},
   };
 
