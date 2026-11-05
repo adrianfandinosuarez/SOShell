@@ -10,6 +10,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 
 #include "memoria.h"
 #include "arquivos.h"
@@ -377,5 +378,87 @@ void Cmd_io(char *tr[]) {
         do_IOWriteFile(tr + 1);
     } else {
         printf("uso: i-o [read|write] ......\n");
+    }
+}
+
+// Cmd_memory implementation
+// 3 globales inicializadas (.data) y 3 no inicializadas (.bss)
+int g_init_1 = 1, g_init_2 = 2, g_init_3 = 3;
+int g_noinit_1, g_noinit_2, g_noinit_3;
+
+// 3 estáticas inicializadas (.data) y 3 no inicializadas (.bss)
+static int s_init_1 = 10, s_init_2 = 20, s_init_3 = 30;
+static int s_noinit_1, s_noinit_2, s_noinit_3;
+
+void do_MemoryVars(void) {
+    int auto_1 = 1, auto_2 = 2, auto_3 = 3;
+
+    printf("%-24s%p,    %p,    %p\n", "Variables locales", 
+           (void *)&auto_1, (void *)&auto_2, (void *)&auto_3);
+    printf("%-24s%p,    %p,    %p\n", "Variables globales", 
+           (void *)&g_init_1, (void *)&g_init_2, (void *)&g_init_3);
+    printf("%-24s%p,    %p,    %p\n", "Var (N.I.)globales", 
+           (void *)&g_noinit_1, (void *)&g_noinit_2, (void *)&g_noinit_3);
+    printf("%-24s%p,    %p,    %p\n", "Variables staticas", 
+           (void *)&s_init_1, (void *)&s_init_2, (void *)&s_init_3);
+    printf("%-24s%p,    %p,    %p\n", "Var (N.I.)staticas", 
+           (void *)&s_noinit_1, (void *)&s_noinit_2, (void *)&s_noinit_3);
+}
+
+void do_MemoryFuncs(void) {
+    printf("%-24s%p,    %p,    %p\n", "Funciones programa", 
+           (void *)Cmd_allocate, (void *)Cmd_io, (void *)do_MemoryFuncs);
+    printf("%-24s%p,    %p,    %p\n", "Funciones libreria", 
+           (void *)printf, (void *)malloc, (void *)open);
+}
+
+void Do_pmap (void) /*sin argumentos*/
+ { pid_t pid;       /*hace el pmap (o equivalente) del proceso actual*/
+   char elpid[32];
+   char *argv[4]={"pmap",elpid,NULL};
+   
+   sprintf (elpid,"%d", (int) getpid());
+   if ((pid=fork())==-1){
+      perror ("Imposible crear proceso");
+      return;
+      }
+   if (pid==0){
+      if (execvp(argv[0],argv)==-1)
+         perror("cannot execute pmap (linux, solaris)");
+         
+      argv[0]="procstat"; argv[1]="vm"; argv[2]=elpid; argv[3]=NULL;   
+      if (execvp(argv[0],argv)==-1)/*No hay pmap, probamos procstat FreeBSD */
+         perror("cannot execute procstat (FreeBSD)");
+         
+      argv[0]="procmap",argv[1]=elpid;argv[2]=NULL;    
+            if (execvp(argv[0],argv)==-1)  /*probamos procmap OpenBSD*/
+         perror("cannot execute procmap (OpenBSD)");
+         
+      argv[0]="vmmap"; argv[1]="-interleave"; argv[2]=elpid;argv[3]=NULL;
+      if (execvp(argv[0],argv)==-1) /*probamos vmmap Mac-OS*/
+         perror("cannot execute vmmap (Mac-OS)");      
+      exit(1);
+  }
+  waitpid (pid,NULL,0);
+}
+
+void Cmd_memory(char *tr[]) {
+    if (tr[0] == NULL || !strcmp(tr[0], "-all")) {
+        do_MemoryVars();
+        do_MemoryFuncs();
+        ImprimirListaTotal(&L);
+        return;
+    }
+
+    if (!strcmp(tr[0], "-blocks")) {
+        ImprimirListaTotal(&L);
+    } else if (!strcmp(tr[0], "-funcs")) {
+        do_MemoryFuncs();
+    } else if (!strcmp(tr[0], "-vars")) {
+        do_MemoryVars();
+    } else if (!strcmp(tr[0], "-pmap")) {
+        Do_pmap();
+    } else {
+        printf("uso: memory [-blocks|-funcs|-vars|-all|-pmap]\n");
     }
 }
