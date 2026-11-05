@@ -262,5 +262,120 @@ void Cmd_allocate(char *tr[]) {
 }
 
 void Cmd_deallocate(char *tr[]) {
+    
+}
 
-}   
+void * CadenatoPointer (char * s)
+{
+    void *p;
+    sscanf(s, "%p", &p);
+    return p;
+}
+
+ssize_t LeerFichero (char *f, void *p, size_t cont)
+{
+   struct stat s;
+   ssize_t  n;  
+   int df,aux;
+
+   if (stat (f,&s)==-1 || (df=open(f,O_RDONLY))==-1)
+	return -1;     
+   if (cont==-1)   /* si pasamos -1 como bytes a leer lo leemos entero*/
+	cont=s.st_size;
+   if ((n=read(df,p,cont))==-1){
+	aux=errno;
+	close(df);
+	errno=aux;
+	return -1;
+   }
+   close (df);
+   return n;
+}
+
+void do_IOReadFile (char *ar[])
+{
+   void *p;
+   size_t cont=-1;  /*si no pasamos tamano se lee entero */
+   ssize_t n;
+   if (ar[0]==NULL || ar[1]==NULL){
+	printf ("faltan parametros\n");
+	return;
+   }
+   p=CadenatoPointer(ar[1]);  /*convertimos de cadena a puntero*/
+   if (ar[2]!=NULL)
+	cont=(size_t) atoll(ar[2]);
+
+   if ((n=LeerFichero(ar[0],p,cont))==-1)
+	perror ("Imposible leer fichero");
+   else
+	printf ("leidos %lld bytes de %s en %p\n",(long long) n,ar[0],p);
+}
+
+ssize_t EscribirFichero (char *f, void *p, size_t cont, int overwrite)
+{
+    ssize_t n;
+    int df, aux;
+    int flags = O_WRONLY | O_CREAT;
+
+    // Si overwrite es 1 (-o presente), truncamos; si es 0, O_EXCL hace fallar si ya existe
+    if (overwrite)
+        flags |= O_TRUNC;
+    else
+        flags |= O_EXCL;
+
+    if ((df = open(f, flags, 0666)) == -1)
+        return -1;
+
+    if ((n = write(df, p, cont)) == -1) {
+        aux = errno;
+        close(df);
+        errno = aux;
+        return -1;
+    }
+    close(df);
+    return n;
+}
+
+void do_IOWriteFile (char *ar[])
+{
+    int overwrite = 0;
+    int i = 0;
+    void *p;
+    size_t cont;
+    ssize_t n;
+
+    // Comprobamos si el flag -o está presente
+    if (ar[i] != NULL && !strcmp(ar[i], "-o")) {
+        overwrite = 1;
+        i++;
+    }
+
+    if (ar[i] == NULL || ar[i+1] == NULL || ar[i+2] == NULL) {
+        printf("faltan parametros\n");
+        return;
+    }
+
+    char *fichero = ar[i];
+    p = CadenatoPointer(ar[i+1]);
+    cont = (size_t) atoll(ar[i+2]);
+
+    if ((n = EscribirFichero(fichero, p, cont, overwrite)) == -1)
+        perror("Imposible escribir fichero");
+    else
+        printf("escritos %lld bytes en %s desde %p\n", (long long) n, fichero, p);
+}
+
+void Cmd_io(char *tr[]) {
+    if (tr[0] == NULL) {
+        printf("uso: i-o [read|write] ......\n");
+        return;
+    }
+
+    if (!strcmp(tr[0], "read")) {
+        do_IOReadFile(tr + 1);
+    } else if (!strcmp(tr[0], "write")) {
+        do_IOWriteFile(tr + 1);
+    } else {
+        printf("uso: i-o [read|write] ......\n");
+    }
+}
