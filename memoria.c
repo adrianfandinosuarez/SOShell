@@ -262,7 +262,7 @@ void Cmd_allocate(char *tr[]) {
 }
 
 void Cmd_deallocate(char *tr[]) {
-    
+           
 }
 
 void * CadenatoPointer (char * s)
