@@ -672,12 +672,11 @@ void Recursiva(int n) {
     char automatico[TAMANO];
     static char estatico[TAMANO];
 
-    printf("parametro n:%4d en %p\n", n, (void *)&n);
-    printf("array estatico en:%p \n", (void *)estatico);
-    printf("array automatico en %p\n", (void *)automatico);
-    n--;
+    printf("parametro:%3d(%p) array %p, arr estatico %p\n", 
+           n, (void *)&n, (void *)automatico, (void *)estatico);
+
     if (n > 0)
-        Recursiva(n);
+        Recursiva(n - 1);
 }
 
 void Cmd_recurse(char *tr[]) {
