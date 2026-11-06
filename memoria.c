@@ -711,9 +711,31 @@ void Cmd_memfill(char *tr[]) {
         cont = (size_t)strtoul(tr[1],NULL,10);
     }
 
-    if(tr[2]!=NULL){
-        hcode = (unsigned char)strtoul(tr[2],NULL,16);
+    if (tr[2] != NULL) {
+        if (tr[2][0] == '\'' || tr[2][0] == '\"') {
+            //verifica un caracter literal con comilla/s
+            size_t len = strlen(tr[2]);
+            if (len == 2) {
+                //formato sin comilla de cierre
+                hcode = (unsigned char)tr[2][1];
+            } else if (len == 3 && (tr[2][2] == '\''||tr[2][2] == '\"')) {
+                // y esta con cierre
+                hcode = (unsigned char)tr[2][1];
+            } else {
+                printf("Error: formato de caracter invalido. Inserte un unico caracter (ej. 'C o 'C')\n");
+                return;
+                //bastante autoexplicativo
+            }
+        } else if (strncmp(tr[2], "0x", 2) == 0 || strncmp(tr[2], "0X", 2) == 0) {
+            //verifica numero hexadecimal si empiza por 0x/0X
+            hcode = (unsigned char)strtoul(tr[2], NULL, 16);
+        } else {
+            //numeros decimales
+            hcode = (unsigned char)strtoul(tr[2], NULL, 10);
+        }
     }
+    printf("Llenando %lu bytes de memoria con el byte %c(0x%02X) a partir de la direccion %p\n",
+           (unsigned long)cont, (isprint(hcode) ? hcode : '.'), hcode, p);
 
     LlenarMemoria(p, cont, hcode);
 

@@ -66,6 +66,8 @@ static struct COMANDO C[]={
    {"read", Cmd_read},
    {"write", Cmd_write},
    {"recurse", Cmd_recurse},
+   {"memfill", Cmd_memfill},
+   {"memdump", Cmd_memdump},
    {NULL,NULL},
   };
 
