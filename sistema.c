@@ -116,3 +116,18 @@ void Cmd_help(char *tr[]) {
         printf("Comando no encontrado. Teclee 'help' para ver la lista de comandos disponibles.\n");
     }
 }
+
+void Cmd_walrus(char *tr[]) {
+    printf("               __ ___\n");
+    printf("             .'. -- . '.\n");
+    printf("            /U)  __   (O|\n");
+    printf("           /.'  ()()   '.\\._\n");
+    printf("         .',/;,_.--._.;;) . '--..__\n");
+    printf("        /  ,///|.__.|.\\\\\\  \\ '. '.''---..___\n");
+    printf("       /'._ '' ||  ||  '' _'\\  :   \\   '   . '.\n");
+    printf("      /        ||  ||        '.,    )   )   :  \\\n");
+    printf("     :'-.__ _  ||  ||   _ __.' _\\_ .'  '   '   ,)\n");
+    printf("     (          '  |'        ( __= ___..-._ ( (.\\\\\n");
+    printf("    ('\\      .___ ___.      /'.___=          \\.\\.\\\n");
+    printf("     \\\\\\-..____________..--'' pils\n");
+}
